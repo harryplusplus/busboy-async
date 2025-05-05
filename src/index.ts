@@ -93,9 +93,9 @@ export async function* busboy(source: Source, config?: Config) {
         } else {
           yield event;
         }
+      } else {
+        await waiter;
       }
-
-      await waiter;
     }
   } finally {
     source.unpipe(busboy);
