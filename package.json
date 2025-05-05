@@ -1,6 +1,6 @@
 {
   "name": "@harryplusplus/busboy-async",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "This is an async generator-ized busboy.",
   "keywords": [
     "busboy",
@@ -25,13 +25,11 @@
         "default": "./dist/index.js"
       },
       "require": {
-        "types": "./dist/index.d.cts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/index.cjs"
       }
     }
   },
-  "main": "dist/index.cjs",
-  "types": "dist/index.d.cts",
   "files": [
     "dist",
     "src"
@@ -55,10 +53,10 @@
       "src/index.ts"
     ],
     "clean": true,
-    "dts": true,
     "format": [
       "esm",
       "cjs"
-    ]
+    ],
+    "onSuccess": "tsc"
   }
 }
