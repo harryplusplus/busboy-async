@@ -1,32 +1,162 @@
-import busboyInternal, { BusboyConfig, BusboyEvents } from "busboy";
+import busboyInternal, { BusboyEvents } from "busboy";
+import { IncomingHttpHeaders } from "node:http";
+import { Readable } from "node:stream";
 import { Queue } from "./queue";
 
-type Source = NodeJS.ReadableStream & Pick<BusboyConfig, "headers">;
-type Config = Omit<BusboyConfig, "headers">;
+export namespace Busboy {
+  export type Limits = {
+    /**
+     * Max field name size (in bytes).
+     *
+     * @default 100
+     */
+    fieldNameSize?: number | undefined;
 
-type FieldEvent = {
-  type: "field";
-  name: Parameters<BusboyEvents["field"]>[0];
-  value: Parameters<BusboyEvents["field"]>[1];
-  info: Parameters<BusboyEvents["field"]>[2];
+    /**
+     * Max field value size (in bytes).
+     *
+     * @default 1048576 (1MB)
+     */
+    fieldSize?: number | undefined;
+
+    /**
+     * Max number of non-file fields.
+     *
+     * @default Infinity
+     */
+    fields?: number | undefined;
+
+    /**
+     * For multipart forms, the max file size (in bytes).
+     *
+     * @default Infinity
+     */
+    fileSize?: number | undefined;
+
+    /**
+     * For multipart forms, the max number of file fields.
+     *
+     * @default Infinity
+     */
+    files?: number | undefined;
+
+    /**
+     * For multipart forms, the max number of parts (fields + files).
+     *
+     * @default Infinity
+     */
+    parts?: number | undefined;
+
+    /**
+     * For multipart forms, the max number of header key-value pairs to parse.
+     *
+     * @default 2000 (same as node's http module)
+     */
+    headerPairs?: number | undefined;
+  };
+
+  export type Config = {
+    /**
+     * 'highWaterMark' to use for the parser stream
+     *
+     * @default stream.Writable
+     */
+    highWaterMark?: number | undefined;
+
+    /**
+     * 'highWaterMark' to use for individual file streams
+     *
+     * @default stream.Readable
+     */
+    fileHwm?: number | undefined;
+
+    /**
+     * Default character set to use when one isn't defined.
+     *
+     * @default 'utf8'
+     */
+    defCharset?: string | undefined;
+
+    /**
+     * For multipart forms, the default character set to use for values of part header parameters (e.g. filename)
+     * that are not extended parameters (that contain an explicit charset
+     *
+     * @default 'latin1'
+     */
+    defParamCharset?: string | undefined;
+
+    /**
+     * If paths in filenames from file parts in a 'multipart/form-data' request shall be preserved.
+     *
+     * @default false
+     */
+    preservePath?: boolean | undefined;
+
+    /**
+     * Various limits on incoming data.
+     */
+    limits?: Limits | undefined;
+  };
+
+  export type Info = {
+    encoding: string;
+    mimeType: string;
+  };
+
+  export type FileInfo = Info & {
+    filename: string;
+  };
+
+  export type FieldInfo = Info & {
+    nameTruncated: boolean;
+    valueTruncated: boolean;
+  };
+
+  export type FileStream = Readable & { truncated?: boolean };
+}
+
+export type Source = NodeJS.ReadableStream & { headers?: IncomingHttpHeaders };
+
+export type Config = Busboy.Config & {
+  /**
+   * Specifies the names of file fields that the generator should yield.
+   * If this array is non-empty, only file events with names included in this list will be yielded.
+   * File events with names *not* in this list will be automatically resumed and skipped by the wrapper,
+   * preventing potential hangs from unhandled streams.
+   * If this array is empty (the default), all file events will be yielded by the generator.
+   *
+   * @default []
+   */
+  allowedFileNames?: string[];
 };
-type FieldsLimitEvent = {
+
+export type FieldEvent = {
+  type: "field";
+  name: string;
+  value: string;
+  info: Busboy.FieldInfo;
+};
+
+export type FieldsLimitEvent = {
   type: "fieldsLimit";
 };
-type FileEvent = {
+
+export type FileEvent = {
   type: "file";
-  name: Parameters<BusboyEvents["file"]>[0];
-  stream: Parameters<BusboyEvents["file"]>[1];
-  info: Parameters<BusboyEvents["file"]>[2];
+  name: string;
+  stream: Busboy.FileStream;
+  info: Busboy.FileInfo;
 };
-type FilesLimitEvent = {
+
+export type FilesLimitEvent = {
   type: "filesLimit";
 };
-type PartsLimitEvent = {
+
+export type PartsLimitEvent = {
   type: "partsLimit";
 };
 
-type Event =
+export type Event =
   | FieldEvent
   | FieldsLimitEvent
   | FileEvent
@@ -35,7 +165,6 @@ type Event =
 
 type CloseInternalEvent = { type: "close" };
 type ErrorInternalEvent = { type: "error"; error: unknown };
-
 type InternalEvent = Event | CloseInternalEvent | ErrorInternalEvent;
 
 export async function* busboy(source: Source, config?: Config) {
@@ -60,13 +189,21 @@ export async function* busboy(source: Source, config?: Config) {
     notify({ type: "field", name, value, info });
   const onFieldsLimit: BusboyEvents["fieldsLimit"] = () =>
     notify({ type: "fieldsLimit" });
-  const onFile: BusboyEvents["file"] = (name, stream, info) =>
-    notify({ type: "file", name, stream, info });
   const onFilesLimit: BusboyEvents["filesLimit"] = () =>
     notify({ type: "filesLimit" });
   const onPartsLimit: BusboyEvents["partsLimit"] = () =>
     notify({ type: "partsLimit" });
 
+  const allowedFileNames = config?.allowedFileNames ?? [];
+  const onFile: BusboyEvents["file"] = (name, stream, info) => {
+    if (allowedFileNames.length === 0 || allowedFileNames.includes(name)) {
+      notify({ type: "file", name, stream, info });
+    } else {
+      stream.resume();
+    }
+  };
+
+  delete config?.allowedFileNames;
   const busboy = busboyInternal({
     ...(config ?? {}),
     headers: source.headers,
