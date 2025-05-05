@@ -5,25 +5,25 @@ type Source = NodeJS.ReadableStream & Pick<BusboyConfig, "headers">;
 type Config = Omit<BusboyConfig, "headers">;
 
 type FieldEvent = {
-  event: "field";
+  type: "field";
   name: Parameters<BusboyEvents["field"]>[0];
   value: Parameters<BusboyEvents["field"]>[1];
   info: Parameters<BusboyEvents["field"]>[2];
 };
 type FieldsLimitEvent = {
-  event: "fieldsLimit";
+  type: "fieldsLimit";
 };
 type FileEvent = {
-  event: "file";
+  type: "file";
   name: Parameters<BusboyEvents["file"]>[0];
   stream: Parameters<BusboyEvents["file"]>[1];
   info: Parameters<BusboyEvents["file"]>[2];
 };
 type FilesLimitEvent = {
-  event: "filesLimit";
+  type: "filesLimit";
 };
 type PartsLimitEvent = {
-  event: "partsLimit";
+  type: "partsLimit";
 };
 
 type Event =
@@ -33,8 +33,8 @@ type Event =
   | FilesLimitEvent
   | PartsLimitEvent;
 
-type CloseInternalEvent = { event: "close" };
-type ErrorInternalEvent = { event: "error"; error: unknown };
+type CloseInternalEvent = { type: "close" };
+type ErrorInternalEvent = { type: "error"; error: unknown };
 
 type InternalEvent = Event | CloseInternalEvent | ErrorInternalEvent;
 
@@ -53,19 +53,19 @@ export async function* busboy(source: Source, config?: Config) {
     }
   };
 
-  const onClose: BusboyEvents["close"] = () => notify({ event: "close" });
+  const onClose: BusboyEvents["close"] = () => notify({ type: "close" });
   const onError: BusboyEvents["error"] = (error) =>
-    notify({ event: "error", error });
+    notify({ type: "error", error });
   const onField: BusboyEvents["field"] = (name, value, info) =>
-    notify({ event: "field", name, value, info });
+    notify({ type: "field", name, value, info });
   const onFieldsLimit: BusboyEvents["fieldsLimit"] = () =>
-    notify({ event: "fieldsLimit" });
+    notify({ type: "fieldsLimit" });
   const onFile: BusboyEvents["file"] = (name, stream, info) =>
-    notify({ event: "file", name, stream, info });
+    notify({ type: "file", name, stream, info });
   const onFilesLimit: BusboyEvents["filesLimit"] = () =>
-    notify({ event: "filesLimit" });
+    notify({ type: "filesLimit" });
   const onPartsLimit: BusboyEvents["partsLimit"] = () =>
-    notify({ event: "partsLimit" });
+    notify({ type: "partsLimit" });
 
   const busboy = busboyInternal({
     ...(config ?? {}),
@@ -86,9 +86,9 @@ export async function* busboy(source: Source, config?: Config) {
     while (true) {
       if (!queue.isEmpty()) {
         const event = queue.pop();
-        if (event.event === "close") {
+        if (event.type === "close") {
           break;
-        } else if (event.event === "error") {
+        } else if (event.type === "error") {
           throw event.error;
         } else {
           yield event;
