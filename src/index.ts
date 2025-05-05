@@ -254,6 +254,7 @@ export async function* busboy(source: Source, config?: Config) {
     busboy.off("partsLimit", onPartsLimit);
 
     if (!busboy.destroyed) {
+      busboy.end();
       busboy.destroy();
     }
   }
