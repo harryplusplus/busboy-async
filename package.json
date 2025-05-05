@@ -1,0 +1,57 @@
+{
+  "name": "busboy-async",
+  "version": "0.1.0",
+  "description": "This is an async generator-ized busboy.",
+  "keywords": [
+    "busboy",
+    "async",
+    "generator"
+  ],
+  "homepage": "https://github.com/harryplusplus/busboy-async#readme",
+  "bugs": {
+    "url": "https://github.com/harryplusplus/busboy-async/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harryplusplus/busboy-async.git"
+  },
+  "license": "MIT",
+  "author": "Harry Kim <harryplusplus@gmail.com> (https://harryplusplus.com)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "dist/index.cjs",
+  "types": "dist/index.d.cts",
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "busboy": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/busboy": "^1.5.4",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
+  },
+  "tsup": {
+    "entry": [
+      "src/index.ts"
+    ],
+    "clean": true,
+    "dts": true,
+    "format": [
+      "esm",
+      "cjs"
+    ]
+  }
+}
