@@ -1,6 +1,6 @@
 {
-  "name": "@harryplusplus/busboy-async",
-  "version": "0.3.5",
+  "name": "busboy-async",
+  "version": "0.1.0",
   "description": "This is an async generator-ized busboy.",
   "keywords": [
     "busboy",
