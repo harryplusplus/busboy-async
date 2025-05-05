@@ -1,6 +1,6 @@
 {
   "name": "@harryplusplus/busboy-async",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "This is an async generator-ized busboy.",
   "keywords": [
     "busboy",
@@ -40,10 +40,10 @@
     "build": "tsup"
   },
   "dependencies": {
+    "@types/busboy": "^1.5.4",
     "busboy": "^1.6.0"
   },
   "devDependencies": {
-    "@types/busboy": "^1.5.4",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3"
   },
