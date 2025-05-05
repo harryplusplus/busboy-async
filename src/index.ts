@@ -259,9 +259,8 @@ export async function* busboy(source: Source, config?: Config) {
 
     for (const stream of yieldedFileStreams) {
       try {
-        if (!stream.closed || !stream.destroyed) {
+        if (!stream.destroyed) {
           stream.once("error", () => {});
-          stream.resume();
           stream.destroy();
         }
       } catch (_e) {}
@@ -269,7 +268,6 @@ export async function* busboy(source: Source, config?: Config) {
 
     if (!busboy.destroyed) {
       busboy.once("error", () => {});
-      busboy.end();
       busboy.destroy();
     }
   }
