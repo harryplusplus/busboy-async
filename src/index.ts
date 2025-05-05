@@ -209,6 +209,7 @@ export async function* busboy(source: Source, config?: Config) {
     headers: source.headers,
   });
 
+  const yieldedFileStreams: Busboy.FileStream[] = [];
   try {
     busboy.on("close", onClose);
     busboy.on("error", onError);
@@ -227,6 +228,9 @@ export async function* busboy(source: Source, config?: Config) {
           break;
         } else if (event.type === "error") {
           throw event.error;
+        } else if (event.type === "file") {
+          yieldedFileStreams.push(event.stream);
+          yield event;
         } else {
           yield event;
         }
@@ -253,7 +257,18 @@ export async function* busboy(source: Source, config?: Config) {
     busboy.off("filesLimit", onFilesLimit);
     busboy.off("partsLimit", onPartsLimit);
 
+    for (const stream of yieldedFileStreams) {
+      try {
+        if (!stream.closed || !stream.destroyed) {
+          stream.once("error", () => {});
+          stream.resume();
+          stream.destroy();
+        }
+      } catch (_e) {}
+    }
+
     if (!busboy.destroyed) {
+      busboy.once("error", () => {});
       busboy.end();
       busboy.destroy();
     }
